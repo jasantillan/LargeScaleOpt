@@ -19,6 +19,28 @@ class Parameters:
     # can add parameters such as cooling rate etc.
 
 
+    #decay parameter
+    decay = .95
+    
+    #initializing repair methods weight
+    rd1 = 1
+    rd2 = 1
+    rd3= 1
+    
+    #initializing repair methods weight
+    rr1 = 1
+    rr2 = 1
+    rr3= 1 
+    
+    #rewards per scenario
+    w1 = 5 #new global solutions
+    w2 = 1 #better than current
+    w3 = 0 #rejected
+    
+    weights = {1:w1,2:w2,3:w3}
+
+
+
 class ALNS:
     """
     Class that models the ALNS algorithm. 
@@ -83,9 +105,16 @@ class ALNS:
             self.tempSolution.computeCost()
             print("Iteration "+str(i)+": Found solution with cost: "+str(self.tempSolution.cost))
             #determine if the new solution is accepted
-            self.checkIfAcceptNewSol()
-            #update the ALNS weights
-            self.updateWeights()
+
+            ############## GET SCENARIO ##################
+            scenario = self.checkIfAcceptNewSol()
+
+
+            ############## ADD THE NECESSARY INFO FOR UPDATE WEIGHTS ##################
+            #update the ALNS weights 
+            self.updateWeights(scenario,repairOpNr,destroyOpNr)
+
+        
         endtime = time.time() # get the end time
         cpuTime = round(endtime-starttime)
 
@@ -101,16 +130,37 @@ class ALNS:
             self.bestSolution = copy.deepcopy(self.tempSolution)
             self.currentSolution = copy.deepcopy(self.tempSolution)
             print("Found new global best solution.")
+            
+            scenario = 1
         
         # currently, we only accept better solutions, no simulated annealing
         if self.tempSolution.cost<self.currentSolution.cost:
             self.currentSolution = copy.deepcopy(self.tempSolution)
+            
+            scenario = 2
+
+        else: 
+            scenario = 3
     
     def updateWeights(self):
         """
         Method that updates the weights of the destroy and repair operators
+        The formula used for upatig the weights are:
+        rho = Lambda * rho (preservation of last iterations) + (1 - lambda)*reward factor
         """
-        pass
+        if repairOpNr == 1: 
+            Parameters.rr1 = Parameters.decay * Parameters.rr1 + (1 - Parameters.decay)*(Parameters.weights[scenario])
+        elif repairOpNr == 2:
+            Parameters.rr2 = Parameters.decay * Parameters.rr2 + (1 - Parameters.decay)*(Parameters.weights[scenario])
+        elif repairOpNr == 2:
+            Parameters.rr3 = Parameters.decay * Parameters.rr3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
+
+        if destroyOpNr == 1:
+            Parameters.rd1 = Parameters.decay * Parameters.rd1 + (1 - Parameters.decay)*(Parameters.weights[scenario])
+        elif destroyOpNr == 2:
+            Parameters.rd2 = Parameters.decay * Parameters.rd2 + (1 - Parameters.decay)*(Parameters.weights[scenario])
+        elif destroyOpNr == 2:
+            Parameters.rd3 = Parameters.decay * Parameters.rd3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
     
     def determineDestroyOpNr(self):
         """
@@ -118,7 +168,22 @@ class ALNS:
         Currently we just pick a random one with equal probabilities. 
         Could be extended with weights
         """
-        return self.randomGen.randint(1, self.nDestroyOps)
+        i = random.random()*(Parameters.rd1+Parameters.rd2+Parameters.rd3)
+        p1 = Parameters.rd1
+        p2 = Parameters.rd1 + Parameters.rd2
+        # p3 = rd3
+        
+        if i<=p1:
+            choice = 1
+        elif i>p1 and i<=p2:
+            choice = 2
+        else:
+            choice = 3
+        
+        # choice = self.randomGen.randint(1, self.nDestroyOps)
+        print ("Method for Destroy ",choice)
+
+        return choice
     
     def determineRepairOpNr(self):
         """
@@ -126,7 +191,23 @@ class ALNS:
         Currently we just pick a random one with equal probabilities. 
         Could be extended with weights
         """
-        return self.randomGen.randint(1, self.nRepairOps)
+        i = random.random()*(Parameters.rr1+Parameters.rr2+Parameters.rr3)
+        p1 = Parameters.rr1
+        p2 = Parameters.rr1 + Parameters.rr2
+        # p3 = rr3
+        
+        if i<=p1:
+            choice = 1
+        elif i>p1 and i<=p2:
+            choice = 2
+        else:
+            choice = 3
+        
+        # choice = self.randomGen.randint(1, self.nDestroyOps)
+        print ("Method for Repair ", choice)
+        
+
+        return choice
     
 
     
