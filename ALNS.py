@@ -6,6 +6,7 @@ from Solution import Solution
 import random
 import copy
 import time
+import math
 
 
 class Parameters:
@@ -17,7 +18,6 @@ class Parameters:
     maxSizeNBH = 45  # maximum neighborhood size
     randomSeed = 1  # value of the random seed
     # can add parameters such as cooling rate etc.
-
 
     #decay, cooling, starting temperature and initializer parameters
     decay = .95
@@ -42,7 +42,6 @@ class Parameters:
     w4 = 0 #rejected
     
     weights = {1:w1,2:w2,3:w3,4:w4}
-
 
 
 class ALNS:
@@ -76,8 +75,6 @@ class ALNS:
     
     def constructInitialSolution(self):
         """
-        
-        
         Method that constructs an initial solution using random insertion
         """
         self.currentSolution = Solution(self.problem,list(),list(),list(self.problem.customers.copy()))
@@ -93,8 +90,13 @@ class ALNS:
         if Parameters.tempearture is None:
             Parameters.temperature = (self.bestCost)*Parameters.starting_t
 
+                #### SET NON USED INITIAL WEIGHTS to 0
+        if self.nDestroyOps == 2:
+            Parameters.rd3 = 0
+        if self.nRepairOps == 2:
+            Parameters.rr3 = 0
+
     
-        
     def execute(self):
         """
         Method that executes the ALNS
@@ -119,12 +121,10 @@ class ALNS:
             ############## GET SCENARIO ##################
             scenario = self.checkIfAcceptNewSol()
 
-
             ############## ADD THE NECESSARY INFO FOR UPDATE WEIGHTS ##################
             #update the ALNS weights 
             self.updateWeights(scenario,repairOpNr,destroyOpNr)
 
-        
         endtime = time.time() # get the end time
         cpuTime = round(endtime-starttime)
 
@@ -134,6 +134,9 @@ class ALNS:
         """
         Method that checks if we accept the newly found solution
         """
+        
+        rand_t = random.random()
+
         # if we found a global best solution, we always accept
         if self.tempSolution.cost < self.bestCost:
             self.bestCost = self.tempSolution.cost
@@ -144,17 +147,19 @@ class ALNS:
             scenario = 1
         
         # currently, we only accept better solutions, no simulated annealing
-        elif self.tempSolution.cost<self.currentSolution.cost:
+        elif self.tempSolution.cost < self.currentSolution.cost:
             self.currentSolution = copy.deepcopy(self.tempSolution)
             scenario = 2
         
-        elif self.tempSolution.cost>self.currentSolution.cost and random.Random()<math.exp(-(self.currentSolution.cost-self.tempSolution.cost)/Parameters.temperature):
+        elif self.tempSolution.cost>self.currentSolution.cost and rand_t<math.exp(-(self.currentSolution.cost-self.tempSolution.cost)/Parameters.temperature):
             self.currentSolution = copy.deepcopy(self.tempSolution)
             Parameters.temperature() = Parameters.temperature*Parameters.cooling_rate
             scenario = 3
            
         else: 
             scenario = 4
+            
+        return scenario 
     
     def updateWeights(self):
         """
@@ -185,18 +190,25 @@ class ALNS:
         i = random.random()*(Parameters.rd1+Parameters.rd2+Parameters.rd3)
         p1 = Parameters.rd1
         p2 = Parameters.rd1 + Parameters.rd2
-        # p3 = rd3
         
-        if i<=p1:
+        if self.nDestroyOps == 1:
             choice = 1
-        elif i>p1 and i<=p2:
-            choice = 2
+        elif self.nDestroyOps > 3:
+            if i<=p1:
+                choice = 1
+            elif i>p1 and i<=p2:
+                choice = 2
         else:
-            choice = 3
+            if i<=p1:
+                choice = 1
+            elif i>p1 and i<=p2:
+                choice = 2
+            else: 
+                choice = 3
         
         # choice = self.randomGen.randint(1, self.nDestroyOps)
-        print ("Method for Destroy ",choice)
-
+        print ("Method for Destroy",choice)
+        
         return choice
     
     def determineRepairOpNr(self):
@@ -210,20 +222,25 @@ class ALNS:
         p2 = Parameters.rr1 + Parameters.rr2
         # p3 = rr3
         
-        if i<=p1:
+        if self.nRepairOps == 1:
             choice = 1
-        elif i>p1 and i<=p2:
-            choice = 2
+        elif self.nRepairOps > 3:
+            if i<=p1:
+                choice = 1
+            elif i>p1 and i<=p2:
+                choice = 2
         else:
-            choice = 3
+            if i<=p1:
+                choice = 1
+            elif i>p1 and i<=p2:
+                choice = 2
+            else: 
+                choice = 3
         
-        # choice = self.randomGen.randint(1, self.nDestroyOps)
+        # choice = self.randomGen.randint(1, self.nRepairOps)
         print ("Method for Repair ", choice)
-        
 
         return choice
-    
-
     
     def destroyAndRepair(self,destroyHeuristicNr,repairHeuristicNr,sizeNBH):
         """
