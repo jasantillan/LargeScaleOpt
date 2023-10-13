@@ -19,8 +19,11 @@ class Parameters:
     # can add parameters such as cooling rate etc.
 
 
-    #decay parameter
+    #decay, cooling, starting temperature and initializer parameters
     decay = .95
+    cooling_rate = .95
+    temperature = None
+    starting_t = .05
     
     #initializing repair methods weight
     rd1 = 1
@@ -35,9 +38,10 @@ class Parameters:
     #rewards per scenario
     w1 = 5 #new global solutions
     w2 = 1 #better than current
-    w3 = 0 #rejected
+    w3 = 1 #accepeted with annealing
+    w4 = 0 #rejected
     
-    weights = {1:w1,2:w2,3:w3}
+    weights = {1:w1,2:w2,3:w3,4:w4}
 
 
 
@@ -84,6 +88,12 @@ class ALNS:
         self.bestSolution = copy.deepcopy(self.currentSolution)
         self.bestCost = self.currentSolution.cost
         print("Created initial solution with cost: "+str(self.bestCost))
+        
+                ############## START SIMULATED ANNEALING TEMPEARATURE #############
+        if Parameters.tempearture is None:
+            Parameters.temperature = (self.bestCost)*Parameters.starting_t
+
+    
         
     def execute(self):
         """
@@ -134,13 +144,17 @@ class ALNS:
             scenario = 1
         
         # currently, we only accept better solutions, no simulated annealing
-        if self.tempSolution.cost<self.currentSolution.cost:
+        elif self.tempSolution.cost<self.currentSolution.cost:
             self.currentSolution = copy.deepcopy(self.tempSolution)
-            
             scenario = 2
-
-        else: 
+        
+        elif self.tempSolution.cost>self.currentSolution.cost and random.Random()<math.exp(-(self.currentSolution.cost-self.tempSolution.cost)/Parameters.temperature):
+            self.currentSolution = copy.deepcopy(self.tempSolution)
+            Parameters.temperature() = Parameters.temperature*Parameters.cooling_rate
             scenario = 3
+           
+        else: 
+            scenario = 4
     
     def updateWeights(self):
         """
@@ -152,14 +166,14 @@ class ALNS:
             Parameters.rr1 = Parameters.decay * Parameters.rr1 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         elif repairOpNr == 2:
             Parameters.rr2 = Parameters.decay * Parameters.rr2 + (1 - Parameters.decay)*(Parameters.weights[scenario])
-        elif repairOpNr == 2:
+        elif repairOpNr == 3:
             Parameters.rr3 = Parameters.decay * Parameters.rr3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
 
         if destroyOpNr == 1:
             Parameters.rd1 = Parameters.decay * Parameters.rd1 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         elif destroyOpNr == 2:
             Parameters.rd2 = Parameters.decay * Parameters.rd2 + (1 - Parameters.decay)*(Parameters.weights[scenario])
-        elif destroyOpNr == 2:
+        elif destroyOpNr == 3:
             Parameters.rd3 = Parameters.decay * Parameters.rd3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
     
     def determineDestroyOpNr(self):
