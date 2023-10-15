@@ -123,6 +123,17 @@ class Solution:
                 break
             loc = random.choice(route.locations[1:-1]) 
             self.removeLocation(loc, firstEchelon, route)
+            
+            
+    def worstDestroy (self,nRemove):
+        routes = self.routes_2
+        for i in range(nRemove):
+            maxcost=-1
+            maxindex=None
+            for j in routes:
+                if j[cost]>maxcost:
+                    maxcost
+        return
     
     def removeLocation(self,location, firstEchelon, route):
         """
@@ -311,5 +322,55 @@ class Solution:
                 newRoute.customers = {cust}
                 self.routes_2.append(newRoute)
             # update the lists with served and notServed customers
+            self.served.append(cust)
+            self.notServed.remove(cust)
+
+    def greedyRepair(self, randomGen):
+        """
+        Method that applies a greedy repair method to construct second echelon routes.
+
+        Parameters
+        ----------
+        randomGen : Random
+            Used to generate random numbers for the repair process.
+
+        Returns
+        -------
+        None.
+        """
+        # Iterate over unserved customers
+        for cust in self.notServed:
+            # Keep track of potential routes for insertion
+            potentialRoutes = self.routes_2.copy()
+            inserted = False
+
+            while len(potentialRoutes) > 0:
+                # Pick a random route
+                randomRoute = randomGen.choice(potentialRoutes)
+                afterInsertion = randomRoute.greedyInsert(
+                    cust.deliveryLoc, cust.deliveryLoc.demand)
+
+                if afterInsertion is None:
+                    # Insertion not feasible, remove route from potential routes
+                    potentialRoutes.remove(randomRoute)
+                else:
+                    # Insertion feasible, update routes and break from the loop
+                    inserted = True
+                    afterInsertion.customers = randomRoute.customers
+                    afterInsertion.customers.append(cust)
+                    self.routes_2.remove(randomRoute)
+                    self.routes_2.append(afterInsertion)
+                    break
+
+            # If we were not able to insert, create a new route
+            if not inserted:
+                # Create a new route with the customer
+                sat = randomGen.choice(self.problem.satellites)
+                locList = [sat, cust.deliveryLoc, sat]
+                newRoute = Route(locList, self.problem, False, [cust.deliveryLoc.demand])
+                newRoute.customers.append(cust)
+                self.routes_2.append(newRoute)
+
+            # Update the lists with served and notServed customers
             self.served.append(cust)
             self.notServed.remove(cust)

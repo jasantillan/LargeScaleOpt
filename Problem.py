@@ -159,7 +159,7 @@ class TWO_E_CVRP:
         n_depots = int(instance_name[4])
         n_satellites = int(instance_name[6])
         n_customers = int(instance_name[8:])
-        f = open(f"Instances/Must/{fileName}")
+        f = open(f"C:/Users/juanb/Desktop/Universidad/TUE/LSO/Assignment 2/Instances/Must/{fileName}")
 
         n_line = 0  # count number of line
         nodeCount = 1  # count number of nodes
