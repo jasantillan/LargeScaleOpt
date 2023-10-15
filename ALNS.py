@@ -6,7 +6,7 @@ from Solution import Solution
 import random
 import copy
 import time
-import math
+from mpmath import mp
 
 
 class Parameters:
@@ -36,12 +36,29 @@ class Parameters:
     rr3= 1 
     
     #rewards per scenario
-    w1 = 5 #new global solutions
-    w2 = 1 #better than current
+    w1 = 10 #new global solutions
+    w2 = 5 #better than current
     w3 = 1 #accepeted with annealing
     w4 = 0 #rejected
     
     weights = {1:w1,2:w2,3:w3,4:w4}
+
+    #To graph and get insights of the process
+    rr_list1 = []
+    rd_list1 = []
+    
+    rr_list2 = []
+    rd_list2 = []
+    
+    rr_list3 = []
+    rd_list3 = []
+    
+    i = 0
+    j = 0
+    k = 0
+    
+    best_cost = []
+    temp = []
 
 
 class ALNS:
@@ -90,12 +107,6 @@ class ALNS:
         if Parameters.tempearture is None:
             Parameters.temperature = (self.bestCost)*Parameters.starting_t
 
-                #### SET NON USED INITIAL WEIGHTS to 0
-        if self.nDestroyOps == 2:
-            Parameters.rd3 = 0
-        if self.nRepairOps == 2:
-            Parameters.rr3 = 0
-
     
     def execute(self):
         """
@@ -124,18 +135,60 @@ class ALNS:
             ############## ADD THE NECESSARY INFO FOR UPDATE WEIGHTS ##################
             #update the ALNS weights 
             self.updateWeights(scenario,repairOpNr,destroyOpNr)
+            ################# Get values to construct graph 
+            Parameters.best_cost.append(self.bestSolution.cost)
+            Parameters.temp.append(self.tempSolution.cost)
 
         endtime = time.time() # get the end time
         cpuTime = round(endtime-starttime)
 
         print("Terminated. Final cost: "+str(self.bestSolution.cost)+", cpuTime: "+str(cpuTime)+" seconds")
+
+        ###### Figures:
+        plt.figure(1)
+        iterations = list(range(len(Parameters.rr_list1)))
+        plt.plot(iterations, Parameters.rr_list1, label="Method 1")
     
+        if Parameters.rr2!= 1:
+            plt.plot(iterations, Parameters.rr_list2, label="Method 2")
+        
+        if Parameters.rr3!= 0:
+            plt.plot(iterations, Parameters.rr_list3, label="Method 3")
+
+        # Add labels and a legend
+        plt.xlabel("Iterations")
+        plt.ylabel("Weight")
+        plt.legend()
+        
+        # Display the plot
+        plt.show()
+
+        print ("Scenario 2 was used ",Parameters.i," times")
+        print ("Scenario 3 was used ",Parameters.j," times")
+        print ("Scenario 4 was used ",Parameters.k," times")
+        
+        
+        plt.figure(2)
+        plt.plot(iterations, Parameters.best_cost, label="Best Cost")
+        #plt.plot(iterations, Parameters.current, label="Current")
+        plt.plot(iterations, Parameters.temp, label="temp")
+        
+        # Add labels and a legend
+        plt.xlabel("Iterations")
+        plt.ylabel("Costs")
+        plt.legend()
+        
+        # Display the plot
+        plt.show()
+    
+
     def checkIfAcceptNewSol(self):
         """
         Method that checks if we accept the newly found solution
         """
         
         rand_t = random.random()
+        cost_difference = self.tempSolution.cost - self.currentSolution.cost
 
         # if we found a global best solution, we always accept
         if self.tempSolution.cost < self.bestCost:
@@ -147,21 +200,23 @@ class ALNS:
             scenario = 1
         
         # currently, we only accept better solutions, no simulated annealing
-        elif self.tempSolution.cost < self.currentSolution.cost:
+        elif cost_difference < 0:
             self.currentSolution = copy.deepcopy(self.tempSolution)
+            print("Found new solution vs current")
             scenario = 2
         
-        elif self.tempSolution.cost>self.currentSolution.cost and rand_t<math.exp(-(self.currentSolution.cost-self.tempSolution.cost)/Parameters.temperature):
+        elif cost_difference > 0 and rand_t < (mp.exp(-cost_difference/Parameters.temperature)):
             self.currentSolution = copy.deepcopy(self.tempSolution)
             Parameters.temperature() = Parameters.temperature*Parameters.cooling_rate
             scenario = 3
+            print ("Accepted a worse solution")
            
         else: 
             scenario = 4
             
         return scenario 
     
-    def updateWeights(self):
+    def updateWeights(self,scenario,repairOpNr,destroyOpNr):
         """
         Method that updates the weights of the destroy and repair operators
         The formula used for upatig the weights are:
@@ -180,6 +235,15 @@ class ALNS:
             Parameters.rd2 = Parameters.decay * Parameters.rd2 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         elif destroyOpNr == 3:
             Parameters.rd3 = Parameters.decay * Parameters.rd3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
+
+        Parameters.rr_list1.append(Parameters.rr1)
+        Parameters.rd_list1.append(Parameters.rd1)
+        
+        Parameters.rr_list2.append(Parameters.rr2)
+        Parameters.rd_list2.append(Parameters.rd2)
+        
+        Parameters.rr_list3.append(Parameters.rr3)
+        Parameters.rd_list3.append(Parameters.rd3)
     
     def determineDestroyOpNr(self):
         """
@@ -187,6 +251,9 @@ class ALNS:
         Currently we just pick a random one with equal probabilities. 
         Could be extended with weights
         """
+        if self.nDestroyOps == 2:
+            Parameters.rd3 = 0
+        
         i = random.random()*(Parameters.rd1+Parameters.rd2+Parameters.rd3)
         p1 = Parameters.rd1
         p2 = Parameters.rd1 + Parameters.rd2
@@ -207,7 +274,7 @@ class ALNS:
                 choice = 3
         
         # choice = self.randomGen.randint(1, self.nDestroyOps)
-        print ("Method for Destroy",choice)
+        #print ("Method for Destroy",choice)
         
         return choice
     
@@ -217,6 +284,9 @@ class ALNS:
         Currently we just pick a random one with equal probabilities. 
         Could be extended with weights
         """
+        if self.nRepairOps == 2:
+            Parameters.rr3 = 0
+            
         i = random.random()*(Parameters.rr1+Parameters.rr2+Parameters.rr3)
         p1 = Parameters.rr1
         p2 = Parameters.rr1 + Parameters.rr2
@@ -238,7 +308,7 @@ class ALNS:
                 choice = 3
         
         # choice = self.randomGen.randint(1, self.nRepairOps)
-        print ("Method for Repair ", choice)
+        #print ("Method for Repair ", choice)
 
         return choice
     
