@@ -216,7 +216,7 @@ class ALNS:
         
         elif cost_difference > 0 and rand_t < (mp.exp(-cost_difference/Parameters.temperature)):
             self.currentSolution = copy.deepcopy(self.tempSolution)
-            Parameters.temperature() = Parameters.temperature*Parameters.cooling_rate
+            Parameters.temperature = Parameters.temperature*Parameters.cooling_rate
             scenario = 3
             print ("Accepted a worse solution")
            
