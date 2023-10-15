@@ -147,20 +147,29 @@ class ALNS:
         ###### Figures:
         plt.figure(1)
         iterations = list(range(len(Parameters.rr_list1)))
-        plt.plot(iterations, Parameters.rr_list1, label="Method 1")
-    
-        if Parameters.rr2!= 1:
-            plt.plot(iterations, Parameters.rr_list2, label="Method 2")
         
+        plt.plot(iterations, Parameters.rr_list1, label="Method Repair 1")
+        if Parameters.rr2!= 1:
+            plt.plot(iterations, Parameters.rr_list2, label="Method Repair 2")
         if Parameters.rr3!= 0:
-            plt.plot(iterations, Parameters.rr_list3, label="Method 3")
+            plt.plot(iterations, Parameters.rr_list3, label="Method Repair 3")
 
-        # Add labels and a legend
         plt.xlabel("Iterations")
         plt.ylabel("Weight")
         plt.legend()
-        
-        # Display the plot
+        plt.show()
+
+        plt.figure(2)
+        plt.plot(iterations, Parameters.rd_list1, label="Method Destroy 1")
+        if Parameters.rd2!= 1:
+            # Create a plot for the second list
+            plt.plot(iterations, Parameters.rd_list2, label="Method Destroy 2")
+        if Parameters.rd3!= 0:
+             # Create a plot for the third list
+            plt.plot(iterations, Parameters.rd_list3, label="Method Destroy 3")
+        plt.xlabel("Iterations")
+        plt.ylabel("Weight")
+        plt.legend()
         plt.show()
 
         print ("Scenario 2 was used ",Parameters.i," times")
@@ -168,7 +177,7 @@ class ALNS:
         print ("Scenario 4 was used ",Parameters.k," times")
         
         
-        plt.figure(2)
+        plt.figure(3)
         plt.plot(iterations, Parameters.best_cost, label="Best Cost")
         #plt.plot(iterations, Parameters.current, label="Current")
         plt.plot(iterations, Parameters.temp, label="temp")
