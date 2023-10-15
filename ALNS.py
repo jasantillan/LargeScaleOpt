@@ -348,7 +348,7 @@ class ALNS:
         if destroyHeuristicNr == 1:
             self.tempSolution.executeRandomInsertion(self.randomGen)
         elif destroyHeuristicNr == 2:
-            self.tempSolution.executeRepairMethod2()
+            self.tempSolution.greedyRepair(self.randomGen)
         else:
             self.tempSolution.executeRepairMethod3()
 
