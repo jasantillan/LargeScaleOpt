@@ -384,7 +384,7 @@ class ALNS:
         if destroyHeuristicNr == 1:
             self.tempSolution.executeRandomRemoval(sizeNBH,self.randomGen, False)
         elif destroyHeuristicNr == 2:
-            self.tempSolution.executeWorstRemoval(sizeNBH, self.randomGen, False)
+            self.tempSolution.executeWorstRemoval(sizeNBH, False)
         else:
             self.tempSolution.executeDestroyMethod3(sizeNBH)
         

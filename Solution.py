@@ -125,15 +125,30 @@ class Solution:
             self.removeLocation(loc, firstEchelon, route)
             
             
-    def worstDestroy (self,nRemove):
-        routes = self.routes_2
+    def executeWorstRemoval (self,nRemove, firstEchelon):
+        if firstEchelon is True:
+            routes = self.routes_1
+        else:
+            routes = self.routes_2
         for i in range(nRemove):
+            if len(routes)==0: 
+                break
             maxcost=-1
-            maxindex=None
+            maxroute=None
             for j in routes:
-                if j[cost]>maxcost:
-                    maxcost
-        return
+                if j.cost>maxcost:
+                    maxcost=j.cost
+                    maxroute=j
+            if len(maxroute.locations) == 2:
+                break
+            mdemand=-1
+            for k in maxroute.locations[1:-1]:
+                if k.demand>mdemand:
+                    mdemand=k.demand
+                    loc=k
+            
+            self.removeLocation(loc,firstEchelon, maxroute)
+                    
     
     def removeLocation(self,location, firstEchelon, route):
         """
@@ -308,7 +323,7 @@ class Solution:
                     # insertion feasible, update routes and break from while loop
                     inserted = True
                     afterInsertion.customers = randomRoute.customers
-                    afterInsertion.customers.add(cust)
+                    afterInsertion.customers.append(cust)
                     self.routes_2.remove(randomRoute)
                     self.routes_2.append(afterInsertion)
                     break
@@ -319,7 +334,7 @@ class Solution:
                 sat = randomGen.choice(self.problem.satellites)
                 locList = [sat, cust.deliveryLoc, sat]
                 newRoute = Route(locList, self.problem, False, [cust.deliveryLoc.demand])
-                newRoute.customers = {cust}
+                newRoute.customers.append(cust)
                 self.routes_2.append(newRoute)
             # update the lists with served and notServed customers
             self.served.append(cust)
