@@ -7,7 +7,6 @@ import random
 import copy
 import time
 
-#import math
 import matplotlib.pyplot as plt
 from mpmath import mp
 
