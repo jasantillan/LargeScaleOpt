@@ -267,9 +267,6 @@ class ALNS:
         elif destroyOpNr == 3:
             Parameters.rd3 = Parameters.decay * Parameters.rd3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         
-        print ("Repair ",Parameters.rr1,Parameters.rr2,Parameters.rr3)
-        print("Destroy ",Parameters.rd1,Parameters.rd2,Parameters.rd3)
-        
         Parameters.rr_list1.append(Parameters.rr1)
         Parameters.rd_list1.append(Parameters.rd1)
         
