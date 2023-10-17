@@ -6,6 +6,8 @@ from Solution import Solution
 import random
 import copy
 import time
+
+import matplotlib.pyplot as plt
 from mpmath import mp
 
 
@@ -13,15 +15,15 @@ class Parameters:
     """
     Class that holds all the parameters for ALNS
     """
-    nIterations = 10  # number of iterations of the ALNS
+    nIterations = 1000  # number of iterations of the ALNS
     minSizeNBH = 1  # minimum neighborhood size
     maxSizeNBH = 45  # maximum neighborhood size
     randomSeed = 1  # value of the random seed
     # can add parameters such as cooling rate etc.
-
+    
     #decay, cooling, starting temperature and initializer parameters
     decay = .95
-    cooling_rate = .95
+    cooling_rate = .99
     temperature = None
     starting_t = .05
     
@@ -42,8 +44,7 @@ class Parameters:
     w4 = 0 #rejected
     
     weights = {1:w1,2:w2,3:w3,4:w4}
-
-    #To graph and get insights of the process
+    
     rr_list1 = []
     rd_list1 = []
     
@@ -103,11 +104,11 @@ class ALNS:
         self.bestCost = self.currentSolution.cost
         print("Created initial solution with cost: "+str(self.bestCost))
         
-                ############## START SIMULATED ANNEALING TEMPEARATURE #############
-        if Parameters.tempearture is None:
-            Parameters.temperature = (self.bestCost)*Parameters.starting_t
-
-    
+        #Start Simulated Annealing temperature
+        if Parameters.temperature is None:
+            Parameters.temperature = (self.bestCost)*(Parameters.starting_t)
+        
+        
     def execute(self):
         """
         Method that executes the ALNS
@@ -116,7 +117,7 @@ class ALNS:
         self.constructInitialSolution()
         for i in range(Parameters.nIterations):
             #copy the current solution
-            self.tempSolution = copy.deepcopy(self.currentSolution)
+            self.tempSolution = copy.deepcopy(self.currentSolution)            
             #decide on the size of the neighbourhood
             sizeNBH = self.randomGen.randint(Parameters.minSizeNBH,Parameters.maxSizeNBH)
             #decide on the destroy and repair operator numbers
@@ -128,56 +129,72 @@ class ALNS:
             self.tempSolution.computeCost()
             print("Iteration "+str(i)+": Found solution with cost: "+str(self.tempSolution.cost))
             #determine if the new solution is accepted
-
-            ############## GET SCENARIO ##################
+            
+            #Get performance (scenario) of the methods
             scenario = self.checkIfAcceptNewSol()
-
-            ############## ADD THE NECESSARY INFO FOR UPDATE WEIGHTS ##################
-            #update the ALNS weights 
+        
+            #update the ALNS weights
             self.updateWeights(scenario,repairOpNr,destroyOpNr)
-            ################# Get values to construct graph 
+            
             Parameters.best_cost.append(self.bestSolution.cost)
             Parameters.temp.append(self.tempSolution.cost)
-
+            
+            
+            
         endtime = time.time() # get the end time
         cpuTime = round(endtime-starttime)
 
-        print("Terminated. Final cost: "+str(self.bestSolution.cost)+", cpuTime: "+str(cpuTime)+" seconds")
-
-        ###### Figures:
+        print("Terminated. Final cost: "+str(self.bestSolution.cost)+", cpuTime: "+str(cpuTime)+" seconds")        
+        
         plt.figure(1)
+        # Create a list of indices for the x-axis (time points)
         iterations = list(range(len(Parameters.rr_list1)))
         
+        # Create a plot for the first list
         plt.plot(iterations, Parameters.rr_list1, label="Method Repair 1")
+        
         if Parameters.rr2!= 1:
+            # Create a plot for the second list
             plt.plot(iterations, Parameters.rr_list2, label="Method Repair 2")
+        
         if Parameters.rr3!= 0:
+             # Create a plot for the third list
             plt.plot(iterations, Parameters.rr_list3, label="Method Repair 3")
-
+        
+        # Add labels and a legend
         plt.xlabel("Iterations")
         plt.ylabel("Weight")
         plt.legend()
+        
+        # Display the plot
         plt.show()
-
-        plt.figure(2)
+        
+        plt.figure(3)
+        # Create a plot for the first list
         plt.plot(iterations, Parameters.rd_list1, label="Method Destroy 1")
+        
         if Parameters.rd2!= 1:
             # Create a plot for the second list
             plt.plot(iterations, Parameters.rd_list2, label="Method Destroy 2")
+        
         if Parameters.rd3!= 0:
              # Create a plot for the third list
             plt.plot(iterations, Parameters.rd_list3, label="Method Destroy 3")
+
+        # Add labels and a legend
         plt.xlabel("Iterations")
         plt.ylabel("Weight")
         plt.legend()
+        
+        # Display the plot
         plt.show()
-
-        print ("Scenario 2 was used ",Parameters.i," times")
-        print ("Scenario 3 was used ",Parameters.j," times")
-        print ("Scenario 4 was used ",Parameters.k," times")
+        
+        print ("Scenario 2 ",Parameters.i)
+        print ("Scenario 3 ",Parameters.j)
+        print ("Scenario 4 ",Parameters.k)
         
         
-        plt.figure(3)
+        plt.figure(2)
         plt.plot(iterations, Parameters.best_cost, label="Best Cost")
         #plt.plot(iterations, Parameters.current, label="Current")
         plt.plot(iterations, Parameters.temp, label="temp")
@@ -190,7 +207,6 @@ class ALNS:
         # Display the plot
         plt.show()
     
-
     def checkIfAcceptNewSol(self):
         """
         Method that checks if we accept the newly found solution
@@ -198,39 +214,45 @@ class ALNS:
         
         rand_t = random.random()
         cost_difference = self.tempSolution.cost - self.currentSolution.cost
-
+        
+        print("Best cost till now ", self.bestCost)
+        
         # if we found a global best solution, we always accept
         if self.tempSolution.cost < self.bestCost:
+            scenario = 1
             self.bestCost = self.tempSolution.cost
             self.bestSolution = copy.deepcopy(self.tempSolution)
             self.currentSolution = copy.deepcopy(self.tempSolution)
             print("Found new global best solution.")
             
-            scenario = 1
         
-        # currently, we only accept better solutions, no simulated annealing
-        elif cost_difference < 0:
+        # simulated annealing = accept worst solutions
+        elif self.tempSolution.cost < self.currentSolution.cost:
+            scenario = 2
             self.currentSolution = copy.deepcopy(self.tempSolution)
             print("Found new solution vs current")
-            scenario = 2
-        
-        elif cost_difference > 0 and rand_t < (mp.exp(-cost_difference/Parameters.temperature)):
+            Parameters.i += 1
+
+        elif cost_difference > 0 and rand_t*2 < (mp.exp(-cost_difference/Parameters.temperature)):
+            scenario = 3
             self.currentSolution = copy.deepcopy(self.tempSolution)
             Parameters.temperature = Parameters.temperature*Parameters.cooling_rate
-            scenario = 3
+            Parameters.j += 1
             print ("Accepted a worse solution")
-           
+            
         else: 
             scenario = 4
-            
-        return scenario 
-    
+            Parameters.k += 1
+
+        return scenario
+              
     def updateWeights(self,scenario,repairOpNr,destroyOpNr):
         """
         Method that updates the weights of the destroy and repair operators
         The formula used for upatig the weights are:
         rho = Lambda * rho (preservation of last iterations) + (1 - lambda)*reward factor
         """
+        
         if repairOpNr == 1: 
             Parameters.rr1 = Parameters.decay * Parameters.rr1 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         elif repairOpNr == 2:
@@ -244,7 +266,8 @@ class ALNS:
             Parameters.rd2 = Parameters.decay * Parameters.rd2 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         elif destroyOpNr == 3:
             Parameters.rd3 = Parameters.decay * Parameters.rd3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
-
+        
+        
         Parameters.rr_list1.append(Parameters.rr1)
         Parameters.rd_list1.append(Parameters.rd1)
         
@@ -253,6 +276,8 @@ class ALNS:
         
         Parameters.rr_list3.append(Parameters.rr3)
         Parameters.rd_list3.append(Parameters.rd3)
+        
+
     
     def determineDestroyOpNr(self):
         """
@@ -260,6 +285,8 @@ class ALNS:
         Currently we just pick a random one with equal probabilities. 
         Could be extended with weights
         """
+        
+        #Set non used weights to 0
         if self.nDestroyOps == 2:
             Parameters.rd3 = 0
         
@@ -281,21 +308,20 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
-        
-        # choice = self.randomGen.randint(1, self.nDestroyOps)
-        #print ("Method for Destroy",choice)
-        
+        print("D ", choice)
+
         return choice
-    
+
     def determineRepairOpNr(self):
         """
         Method that determines the repair operator that will be applied. 
         Currently we just pick a random one with equal probabilities. 
         Could be extended with weights
         """
+        #Set non used weights to 0
         if self.nRepairOps == 2:
             Parameters.rr3 = 0
-            
+        
         i = random.random()*(Parameters.rr1+Parameters.rr2+Parameters.rr3)
         p1 = Parameters.rr1
         p2 = Parameters.rr1 + Parameters.rr2
@@ -315,12 +341,10 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
-        
-        # choice = self.randomGen.randint(1, self.nRepairOps)
-        #print ("Method for Repair ", choice)
 
+        print ("R ",choice)
         return choice
-    
+        
     def destroyAndRepair(self,destroyHeuristicNr,repairHeuristicNr,sizeNBH):
         """
         Method that performs the destroy and repair. More destroy and/or
@@ -338,18 +362,18 @@ class ALNS:
         """
         #perform the destroy 
         if destroyHeuristicNr == 1:
-            self.tempSolution.executeRandomRemoval(sizeNBH,self.randomGen, False)
+            self.tempSolution.executeRandomRemoval(sizeNBH,self.randomGen,False)
         elif destroyHeuristicNr == 2:
-            self.tempSolution.executeDestroyMethod2(sizeNBH)
+            self.tempSolution.executeWorstRemoval(sizeNBH,False)
         else:
             self.tempSolution.executeDestroyMethod3(sizeNBH)
         
         #perform the repair
-        if destroyHeuristicNr == 1:
+        if repairHeuristicNr == 1 or destroyHeuristicNr == 1:
             self.tempSolution.executeRandomInsertion(self.randomGen)
-        elif destroyHeuristicNr == 2:
-            self.tempSolution.greedyRepair(self.randomGen)
-        else:
-            self.tempSolution.executeRepairMethod3()
+        elif repairHeuristicNr == 2:
+            self.tempSolution.greedyInsertions(self.randomGen)
+        elif repairHeuristicNr == 2 and destroyHeuristicNr != 1:
+            self.tempSolution.greedyInsertions_plusRegret(self.randomGen)
 
 

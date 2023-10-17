@@ -3,6 +3,9 @@
 @author: Original template by Rolf van Lieshout and Krissada Tundulyasaree
 """
 from Route import Route
+import sys
+import numpy as np
+
 
 
 class Solution:
@@ -123,6 +126,32 @@ class Solution:
                 break
             loc = random.choice(route.locations[1:-1]) 
             self.removeLocation(loc, firstEchelon, route)
+            
+            
+    def executeWorstRemoval (self,nRemove, firstEchelon):
+        if firstEchelon is True:
+            routes = self.routes_1
+        else:
+            routes = self.routes_2
+        for i in range(nRemove):
+            if len(routes)==0: 
+                break
+            maxcost=-1
+            maxroute=None
+            for j in routes:
+                if j.cost>maxcost:
+                    maxcost=j.cost
+                    maxroute=j
+            if len(maxroute.locations) == 2:
+                break
+            mdemand=-1
+            for k in maxroute.locations[1:-1]:
+                if k.demand>mdemand:
+                    mdemand=k.demand
+                    loc=k
+            
+            self.removeLocation(loc,firstEchelon, maxroute)
+                    
     
     def removeLocation(self,location, firstEchelon, route):
         """
@@ -288,8 +317,7 @@ class Solution:
             while len(potentialRoutes) > 0:
                 # pick a random route
                 randomRoute = randomGen.choice(potentialRoutes)
-                afterInsertion = randomRoute.greedyInsert(
-                    cust.deliveryLoc, cust.deliveryLoc.demand)
+                afterInsertion = randomRoute.greedyInsert(cust.deliveryLoc, cust.deliveryLoc.demand)
                 if afterInsertion is None:
                     # insertion not feasible, remove route from potential routes
                     potentialRoutes.remove(randomRoute)
@@ -297,7 +325,7 @@ class Solution:
                     # insertion feasible, update routes and break from while loop
                     inserted = True
                     afterInsertion.customers = randomRoute.customers
-                    afterInsertion.customers.add(cust)
+                    afterInsertion.customers.append(cust)
                     self.routes_2.remove(randomRoute)
                     self.routes_2.append(afterInsertion)
                     break
@@ -308,60 +336,95 @@ class Solution:
                 sat = randomGen.choice(self.problem.satellites)
                 locList = [sat, cust.deliveryLoc, sat]
                 newRoute = Route(locList, self.problem, False, [cust.deliveryLoc.demand])
-                newRoute.customers = {cust}
+                newRoute.customers.append(cust)
                 self.routes_2.append(newRoute)
             # update the lists with served and notServed customers
             self.served.append(cust)
             self.notServed.remove(cust)
 
-        def greedyRepair(self, randomGen):
-        """
-        Method that applies a greedy repair method to construct second echelon routes.
 
-        Parameters
-        ----------
-        randomGen : Random
-            Used to generate random numbers for the repair process.
 
-        Returns
-        -------
-        None.
-        """
-        # Iterate over unserved customers
-        for cust in self.notServed:
-            # Keep track of potential routes for insertion
-            potentialRoutes = self.routes_2.copy()
+    def greedyInsertions(self, randomGen):
+        # iterate over the list with unserved customers
+        while len(self.notServed) > 0:
+            cust = randomGen.choice(self.notServed)
+            #initialize comparison variables
+            bestInsertion = None
+            bestdist = sys.maxsize
+            routes = self.routes_2.copy()
+            distance = sys.maxsize
+
             inserted = False
-
-            while len(potentialRoutes) > 0:
-                # Pick a random route
-                randomRoute = randomGen.choice(potentialRoutes)
-                afterInsertion = randomRoute.greedyInsert(
-                    cust.deliveryLoc, cust.deliveryLoc.demand)
-
-                if afterInsertion is None:
-                    # Insertion not feasible, remove route from potential routes
-                    potentialRoutes.remove(randomRoute)
-                else:
-                    # Insertion feasible, update routes and break from the loop
+            for route in routes:
+                afterInsertion = route.greedyInsert(cust.deliveryLoc, cust.deliveryLoc.demand)
+                if afterInsertion is not None:
                     inserted = True
-                    afterInsertion.customers = randomRoute.customers
-                    afterInsertion.customers.append(cust)
-                    self.routes_2.remove(randomRoute)
-                    self.routes_2.append(afterInsertion)
-                    break
+                    distance = afterInsertion.computeDistance()
 
-            # If we were not able to insert, create a new route
+                if distance < bestdist:
+                    bestdist = distance
+                    bestInsertion = afterInsertion
+                    currentRoute = route
+
             if not inserted:
-                # Create a new route with the customer
+                # create a new route with the customer
+                sat = randomGen.choice(self.problem.satellites)
+                locList = [sat, cust.deliveryLoc, sat]
+                newRoute = Route(locList, self.problem, False, [cust.deliveryLoc.demand])
+                newRoute.customers.append(cust)
+                self.routes_2.append(newRoute)
+            # update the lists with served and notServed customers
+
+            else:
+                self.routes_2.remove(currentRoute)
+                self.routes_2.append(bestInsertion)
+
+                # update the lists with served and notServed customers
+            self.served.append(cust)
+            self.notServed.remove(cust)
+
+    def greedyInsertions_plusRegret(self, randomGen):
+        # Iterate over the list with unserved customers
+        while len(self.notServed) > 0:
+            cust = randomGen.choice(self.notServed)
+            initial_regret = -1  # Initialize initial_regret as a low value
+
+            bestInsertion = None
+
+            for route in self.routes_2:
+                # Iterate over possible insertion positions in the current route
+                for i in range(1, len(route.locations)):
+                    locationsCopy = route.locations.copy()
+                    demandCopy = route.servedLoad.copy()
+
+
+                    locationsCopy.insert(i, cust.deliveryLoc)
+                    demandCopy.insert(i - 1, cust.deliveryLoc.demand)
+
+                    afterInsertion = Route(locationsCopy, self.problem, False, demandCopy)
+                    cost = afterInsertion.computeCost()
+
+                    # Calculate regret value for this insertion
+                    delta_cost = cost - route.computeCost()
+                    regret = delta_cost - initial_regret
+
+                    if initial_regret < regret:
+                        bestInsertion = afterInsertion
+                        initial_regret = regret
+
+            if bestInsertion:
+
+                self.notServed.remove(cust)
+
+                self.routes_2.remove(route)
+                self.routes_2.append(bestInsertion)
+            else:
+                # If no insertion was found, create a new route with the customer
                 sat = randomGen.choice(self.problem.satellites)
                 locList = [sat, cust.deliveryLoc, sat]
                 newRoute = Route(locList, self.problem, False, [cust.deliveryLoc.demand])
                 newRoute.customers.append(cust)
                 self.routes_2.append(newRoute)
 
-            # Update the lists with served and notServed customers
-            self.served.append(cust)
-            self.notServed.remove(cust)
-        
 
+            self.served.append(cust)
