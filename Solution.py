@@ -389,3 +389,35 @@ class Solution:
             # Update the lists with served and notServed customers
             self.served.append(cust)
             self.notServed.remove(cust)
+            
+    def regretInsertion(self):
+        """
+        Regret Insertion Heuristic to insert customers into routes.
+    
+        Parameters:
+        routes (List of Route): List of routes where customers will be inserted.
+        unplaced_customers (List of Customer): List of untreated customers.
+    
+        Returns:
+        None.
+        """
+        routes = self.routes_2.copy()
+        
+        while len(self.notServed) > 0:
+            # Calculate regret values for all unplaced customers
+            regret_values = []
+            for route in routes:
+                for cust in self.notServed:
+                    regret, bestInsert = route.greedyTwo(cust.deliveryLoc, cust.deliveryLoc.demand)
+                    regret_values.append((cust, regret, route, bestInsert))
+        
+            # Sort unplaced customers by regret value in descending order
+            regret_values.sort(key=lambda x: x[1], reverse=True)
+            
+            routeAfter = regret_values[0][2]
+            print(routeAfter)
+            
+            self.routes_2.remove(routeAfter)
+            self.routes_2.append(bestInsert)
+            self.served.append(cust)
+            self.notServed.remove(cust)

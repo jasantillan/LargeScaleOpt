@@ -392,7 +392,7 @@ class ALNS:
         if repairHeuristicNr == 1:
             self.tempSolution.executeRandomInsertion(self.randomGen)
         elif repairHeuristicNr == 2:
-            self.tempSolution.greedyRepair(self.randomGen)
+            self.tempSolution.regretInsertion()
         else:
             self.tempSolution.executeRepairMethod3()
 
