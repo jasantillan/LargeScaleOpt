@@ -206,3 +206,5 @@ class TWO_E_CVRP:
                         Location(x, y, demand, servTime, typeLoc, nodeID))
                 n_line += 1
         return TWO_E_CVRP(fileName, customerLoc, depot, satellites, customers)
+    
+    

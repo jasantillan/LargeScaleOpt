@@ -202,4 +202,8 @@ class Route:
                 if afterInsertion.distance < minDist:
                     bestInsert = afterInsertion
                     minDist = afterInsertion.distance
+
         return bestInsert
+    
+    
+

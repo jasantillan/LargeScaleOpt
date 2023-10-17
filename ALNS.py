@@ -15,9 +15,9 @@ class Parameters:
     """
     Class that holds all the parameters for ALNS
     """
-    nIterations = 1000  # number of iterations of the ALNS
+    nIterations = 5000  # number of iterations of the ALNS
     minSizeNBH = 1  # minimum neighborhood size
-    maxSizeNBH = 45  # maximum neighborhood size
+    maxSizeNBH = 45 # maximum neighborhood size
     randomSeed = 1  # value of the random seed
     # can add parameters such as cooling rate etc.
     
@@ -60,6 +60,8 @@ class Parameters:
     
     best_cost = []
     temp = []
+    
+    time = None
 
 
 class ALNS:
@@ -143,6 +145,8 @@ class ALNS:
             
         endtime = time.time() # get the end time
         cpuTime = round(endtime-starttime)
+        Parameters.time = cpuTime
+        
 
         print("Terminated. Final cost: "+str(self.bestSolution.cost)+", cpuTime: "+str(cpuTime)+" seconds")        
         
@@ -189,11 +193,6 @@ class ALNS:
         # Display the plot
         plt.show()
         
-        print ("Scenario 2 ",Parameters.i)
-        print ("Scenario 3 ",Parameters.j)
-        print ("Scenario 4 ",Parameters.k)
-        
-        
         plt.figure(2)
         plt.plot(iterations, Parameters.best_cost, label="Best Cost")
         #plt.plot(iterations, Parameters.current, label="Current")
@@ -206,12 +205,18 @@ class ALNS:
         
         # Display the plot
         plt.show()
+        
+        print ("Scenario 1 ",(Parameters.nIterations-Parameters.i-Parameters.j-Parameters.k))
+        print ("Scenario 2 ",Parameters.i)
+        print ("Scenario 3 ",Parameters.j)
+        print ("Scenario 4 ",Parameters.k)
+        
     
     def checkIfAcceptNewSol(self):
         """
         Method that checks if we accept the newly found solution
         """
-        
+        Parameters.temperature = Parameters.temperature*Parameters.cooling_rate
         rand_t = random.random()
         cost_difference = self.tempSolution.cost - self.currentSolution.cost
         
@@ -236,7 +241,6 @@ class ALNS:
         elif cost_difference > 0 and rand_t*2 < (mp.exp(-cost_difference/Parameters.temperature)):
             scenario = 3
             self.currentSolution = copy.deepcopy(self.tempSolution)
-            Parameters.temperature = Parameters.temperature*Parameters.cooling_rate
             Parameters.j += 1
             print ("Accepted a worse solution")
             
@@ -308,7 +312,6 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
-        print("D ", choice)
 
         return choice
 
@@ -341,8 +344,7 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
-
-        print ("R ",choice)
+                
         return choice
         
     def destroyAndRepair(self,destroyHeuristicNr,repairHeuristicNr,sizeNBH):
@@ -369,11 +371,11 @@ class ALNS:
             self.tempSolution.executeDestroyMethod3(sizeNBH)
         
         #perform the repair
-        if repairHeuristicNr == 1 or destroyHeuristicNr == 1:
+        if repairHeuristicNr == 1:
             self.tempSolution.executeRandomInsertion(self.randomGen)
         elif repairHeuristicNr == 2:
             self.tempSolution.greedyInsertions(self.randomGen)
-        elif repairHeuristicNr == 2 and destroyHeuristicNr != 1:
+        elif repairHeuristicNr == 3 and destroyHeuristicNr != 1:
             self.tempSolution.greedyInsertions_plusRegret(self.randomGen)
 
 
