@@ -7,7 +7,6 @@ import random
 import copy
 import time
 
-#import math
 import matplotlib.pyplot as plt
 from mpmath import mp
 
@@ -46,7 +45,6 @@ class Parameters:
     
     weights = {1:w1,2:w2,3:w3,4:w4}
     
-    ############ NEW #############################
     rr_list1 = []
     rd_list1 = []
     
@@ -61,7 +59,6 @@ class Parameters:
     k = 0
     
     best_cost = []
-    current = []
     temp = []
 
 
@@ -107,7 +104,7 @@ class ALNS:
         self.bestCost = self.currentSolution.cost
         print("Created initial solution with cost: "+str(self.bestCost))
         
-        ############## START SIMULATED ANNEALING TEMPEARATURE #############
+        #Start Simulated Annealing temperature
         if Parameters.temperature is None:
             Parameters.temperature = (self.bestCost)*(Parameters.starting_t)
         
@@ -133,10 +130,9 @@ class ALNS:
             print("Iteration "+str(i)+": Found solution with cost: "+str(self.tempSolution.cost))
             #determine if the new solution is accepted
             
-            ############## Get scenario for weights#################
+            #Get performance (scenario) of the methods
             scenario = self.checkIfAcceptNewSol()
-            
-            ############### ADD NECESARRY INFO FOR WIEGHTS##############
+        
             #update the ALNS weights
             self.updateWeights(scenario,repairOpNr,destroyOpNr)
             
@@ -148,10 +144,7 @@ class ALNS:
         endtime = time.time() # get the end time
         cpuTime = round(endtime-starttime)
 
-        print("Terminated. Final cost: "+str(self.bestSolution.cost)+", cpuTime: "+str(cpuTime)+" seconds")
-        
-        ################# NEWWWWWWWWW ######################################
-        
+        print("Terminated. Final cost: "+str(self.bestSolution.cost)+", cpuTime: "+str(cpuTime)+" seconds")        
         
         plt.figure(1)
         # Create a list of indices for the x-axis (time points)
@@ -233,13 +226,12 @@ class ALNS:
             print("Found new global best solution.")
             
         
-        # currently, we only accept better solutions, no simulated annealing
+        # simulated annealing = accept worst solutions
         elif self.tempSolution.cost < self.currentSolution.cost:
             scenario = 2
             self.currentSolution = copy.deepcopy(self.tempSolution)
             print("Found new solution vs current")
             Parameters.i += 1
-
 
         elif cost_difference > 0 and rand_t < (mp.exp(-cost_difference/Parameters.temperature)):
             scenario = 3
@@ -251,8 +243,7 @@ class ALNS:
         else: 
             scenario = 4
             Parameters.k += 1
-        
-        print (scenario)
+
         return scenario
               
     def updateWeights(self,scenario,repairOpNr,destroyOpNr):
@@ -276,12 +267,6 @@ class ALNS:
         elif destroyOpNr == 3:
             Parameters.rd3 = Parameters.decay * Parameters.rd3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         
-        print ("Repair ",Parameters.rr1,Parameters.rr2,Parameters.rr3)
-        print("Destroy ",Parameters.rd1,Parameters.rd2,Parameters.rd3)
-        
-        
-        ################ NEWWWWWWWWWWWWW #######################33
-        
         Parameters.rr_list1.append(Parameters.rr1)
         Parameters.rd_list1.append(Parameters.rd1)
         
@@ -300,11 +285,10 @@ class ALNS:
         Could be extended with weights
         """
         
-        #### SET NON USED INITIAL WEIGHTS to 0
+        #Set non used weights to 0
         if self.nDestroyOps == 2:
             Parameters.rd3 = 0
         
-
         i = random.random()*(Parameters.rd1+Parameters.rd2+Parameters.rd3)
         p1 = Parameters.rd1
         p2 = Parameters.rd1 + Parameters.rd2
@@ -323,9 +307,6 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
-        
-        # choice = self.randomGen.randint(1, self.nDestroyOps)
-        #print ("Method for Destroy",choice)
 
         return choice
 
@@ -335,7 +316,7 @@ class ALNS:
         Currently we just pick a random one with equal probabilities. 
         Could be extended with weights
         """
-        #### SET NON USED INITIAL WEIGHTS to 0
+        #Set non used weights to 0
         if self.nRepairOps == 2:
             Parameters.rr3 = 0
         
@@ -358,10 +339,6 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
-        
-        # choice = self.randomGen.randint(1, self.nRepairOps)
-        #print ("Method for Repair ", choice)
-
         
         return choice
         
