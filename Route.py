@@ -203,3 +203,40 @@ class Route:
                     bestInsert = afterInsertion
                     minDist = afterInsertion.distance
         return bestInsert
+    
+    def greedyTwo(self, location, load):
+        
+        minDist2 = sys.maxsize
+        minDist1 = sys.maxsize  # initialize as extremely large number
+        bestInsert1 = None
+        bestInsert2 = None
+        # return None if empty is sent.
+        if load <= 0:
+            return bestInsert1
+        # iterate over all possible insertion positions
+        for i in range(1, len(self.locations)):
+            locationsCopy = self.locations.copy()
+            demandCopy = self.servedLoad.copy()
+            # update demand
+            demandCopy.insert(i-1, load)
+            locationsCopy.insert(i, location)
+            afterInsertion = Route(locationsCopy, self.problem, self.isFirstEchelonRoute, demandCopy)
+            # check if insertion is feasible
+            if afterInsertion.isFeasible():
+                # check if cheapest
+                if afterInsertion.distance < minDist1:
+                    bestInsert2 = bestInsert1
+                    bestInsert1 = afterInsertion
+                    minDist2 = minDist1
+                    minDist1 = afterInsertion.distance
+
+                elif afterInsertion.distance > minDist1 and afterInsertion.distance < minDist2:
+                    bestInsert2 = afterInsertion
+                    minDist2 = afterInsertion.distance
+                    
+        
+        regret = minDist2 - minDist1
+
+
+        return regret , bestInsert1
+
