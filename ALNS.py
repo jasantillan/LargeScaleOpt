@@ -233,7 +233,7 @@ class ALNS:
             print("Found new solution vs current")
             Parameters.i += 1
 
-        elif cost_difference > 0 and rand_t < (mp.exp(-cost_difference/Parameters.temperature)):
+        elif cost_difference > 0 and rand_t*2 < (mp.exp(-cost_difference/Parameters.temperature)):
             scenario = 3
             self.currentSolution = copy.deepcopy(self.tempSolution)
             Parameters.temperature = Parameters.temperature*Parameters.cooling_rate
@@ -266,6 +266,7 @@ class ALNS:
             Parameters.rd2 = Parameters.decay * Parameters.rd2 + (1 - Parameters.decay)*(Parameters.weights[scenario])
         elif destroyOpNr == 3:
             Parameters.rd3 = Parameters.decay * Parameters.rd3 + (1 - Parameters.decay)*(Parameters.weights[scenario])
+        
         
         Parameters.rr_list1.append(Parameters.rr1)
         Parameters.rd_list1.append(Parameters.rd1)
@@ -307,6 +308,7 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
+        print("D ", choice)
 
         return choice
 
@@ -339,7 +341,8 @@ class ALNS:
                 choice = 2
             else: 
                 choice = 3
-        
+
+        print ("R ",choice)
         return choice
         
     def destroyAndRepair(self,destroyHeuristicNr,repairHeuristicNr,sizeNBH):
@@ -359,18 +362,18 @@ class ALNS:
         """
         #perform the destroy 
         if destroyHeuristicNr == 1:
-            self.tempSolution.executeRandomRemoval(sizeNBH,self.randomGen, False)
+            self.tempSolution.executeRandomRemoval(sizeNBH,self.randomGen,False)
         elif destroyHeuristicNr == 2:
-            self.tempSolution.executeWorstRemoval(sizeNBH, False)
+            self.tempSolution.executeWorstRemoval(sizeNBH,False)
         else:
             self.tempSolution.executeDestroyMethod3(sizeNBH)
         
         #perform the repair
-        if repairHeuristicNr == 1:
+        if repairHeuristicNr == 1 or destroyHeuristicNr == 1:
             self.tempSolution.executeRandomInsertion(self.randomGen)
         elif repairHeuristicNr == 2:
-            self.tempSolution.regretInsertion()
-        else:
-            self.tempSolution.executeRepairMethod3()
+            self.tempSolution.greedyInsertions(self.randomGen)
+        elif repairHeuristicNr == 2 and destroyHeuristicNr != 1:
+            self.tempSolution.greedyInsertions_plusRegret(self.randomGen)
 
 

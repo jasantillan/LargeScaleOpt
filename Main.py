@@ -6,10 +6,12 @@
 import Problem
 from ALNS import ALNS
 
-testI = "Ca1-2,3,15.txt"
+
+testI = "Ca1-3,5,100.txt"
+#testI = "Ca1-2,3,15.txt"
 problem = Problem.TWO_E_CVRP.readInstance(testI)
 nDestroyOps = 2
-nRepairOps = 2
+nRepairOps = 3
 alns = ALNS(problem, nDestroyOps, nRepairOps)
 alns.execute()
 print(alns.bestSolution)
