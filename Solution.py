@@ -342,9 +342,7 @@ class Solution:
             self.served.append(cust)
             self.notServed.remove(cust)
 
-
-
-    def greedyInsertions(self, randomGen):
+    def greedyInsertionsSecond(self, randomGen):
         # iterate over the list with unserved customers
         while len(self.notServed) > 0:
             cust = randomGen.choice(self.notServed)
@@ -382,6 +380,84 @@ class Solution:
                 # update the lists with served and notServed customers
             self.served.append(cust)
             self.notServed.remove(cust)
+
+    def greedyInsertions(self,randomGen):
+        self.greedyInsertionsSecond(randomGen)
+        self.greedyInsertionsFirst(randomGen)
+        
+        
+    def greedyInsertionsFirst(self,randomGen):
+        """
+        Method that randomly inserts the demand of each satellite to construct the routes
+        for the first echelon vehciles. Note that we assume given second-echelon routes
+        to determine demand of each satellite.
+                
+        Parameters
+        ----------
+        randomGen : Random
+            Used to generate random numbers
+
+        """
+        # Determine the first echelon from the given-second echelon routes
+        # This is used to reset the existing first-echelon route.
+        self.routes_1 = []
+        # Derive demands for satellites
+        self.computeDemandSatellites()
+        # iterate over the list with unserved customers
+        self.satDemandServed = [0 for i in range(len(self.satDemandNotServed))]
+        while sum(self.satDemandNotServed) > 0:
+            #pick a satellite with some loads for the first echelon vehicle to deliver
+            load_max = 0
+            while load_max == 0:
+                load_max = randomGen.choice(self.satDemandNotServed)
+            sat_ID = self.satDemandNotServed.index(load_max)
+
+            inserted = False
+            bestInsertion = None
+            bestdist = sys.maxsize
+            routes = self.routes_1.copy()
+            distance = sys.maxsize
+
+            for route in routes:
+                # pick a random route
+                remain_load = self.problem.capacity_first - sum(route.servedLoad)
+                if load_max > remain_load:
+                     load = remain_load
+                else:
+                     load = load_max
+
+                afterInsertion = route.greedyInsert(self.problem.satellites[sat_ID], load)
+
+                if afterInsertion is not None:
+                    inserted = True
+                    distance = afterInsertion.computeDistance()
+
+                if distance < bestdist:
+                    bestdist = distance
+                    bestInsertion = afterInsertion
+                    currentRoute = route
+
+        # if we were not able to insert, create a new route
+            if not inserted:
+                # create a new route with the load
+                depot = self.problem.depot
+                locList = [depot, self.problem.satellites[sat_ID], depot]
+                remain_load = self.problem.capacity_first
+                if load_max > remain_load:
+                     load = remain_load
+                else:
+                     load = load_max
+                newRoute = Route(locList, self.problem, True, [load])
+                # update the demand
+                self.routes_1.append(newRoute)
+            else:
+                self.routes_1.remove(currentRoute)
+                self.routes_1.append(bestInsertion)
+            # update the lists with served and notServed customers
+            self.satDemandNotServed[sat_ID] -= load
+            self.satDemandServed[sat_ID] += load
+
+
 
     def greedyInsertions_plusRegret(self, randomGen):
         # Iterate over the list with unserved customers
