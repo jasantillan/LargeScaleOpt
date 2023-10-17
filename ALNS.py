@@ -7,6 +7,7 @@ import random
 import copy
 import time
 
+
 import matplotlib.pyplot as plt
 from mpmath import mp
 
@@ -15,7 +16,7 @@ class Parameters:
     """
     Class that holds all the parameters for ALNS
     """
-    nIterations = 1000  # number of iterations of the ALNS
+    nIterations = 1000 # number of iterations of the ALNS
     minSizeNBH = 1  # minimum neighborhood size
     maxSizeNBH = 45  # maximum neighborhood size
     randomSeed = 1  # value of the random seed
