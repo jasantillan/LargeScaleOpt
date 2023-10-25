@@ -3,6 +3,7 @@
 @author: Original template by Rolf van Lieshout and Krissada Tundulyasaree
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class UFL_Problem:
@@ -174,38 +175,30 @@ class LagrangianHeuristic:
         Method that, given an array of Lagrangian multipliers computes and returns 
         the Lagrangian solution (as a UFL_Solution)
         """
+        # If no facility is open
+
         for j in range(problem.n_facilities):
             for i in range(problem.n_markets):
-                if problem.c[i][j] - labda[i] < 0:
+                if problem.c[i][j] - labda[i] < 0 :
                     solution.x[i][j] = 1  # Build a plant at location j and assign customer i
                     solution.y[j] = 1  # Open the facility at location j
 
-        return solution.x
+        return solution.x,solution.y
 
     def convertToFeasibleSolution(self,problem,solution):
         """
         Method that, given the Lagrangian Solution computes and returns 
         a feasible solution (as a UFL_Solution)
         """
+
         # Create arrays to store the feasible solution
         x_feasible = np.zeros((problem.n_markets, problem.n_facilities))
         y_feasible = np.zeros(problem.n_facilities)
 
-        # Find out if no facility is open
-        # if np.sum(y) == 0:
-        #     cheapest_open_cost = float('inf')
-        #     chosen_facility = None
-        #
-        #     # Iterate through facilities (j) to find the cheapest facility to open
-        #     for j in range(self.n):
-        #         if self.f[j] < cheapest_open_cost:
-        #             cheapest_open_cost = self.f[j]
-        #             chosen_facility = j
-        #
-        #     if chosen_facility is not None:
-        #         y_feasible[chosen_facility] = 1  # Open the chosen facility
+        if np.sum(solution.y) == 0:
+            pass
 
-        # Iterate through customers (i)
+
         for i in range(problem.n_markets):
             cheapest_facility_cost = float('inf')
             chosen_facility = None
@@ -232,14 +225,14 @@ class LagrangianHeuristic:
         for i in range(problem.n_facilities):
             sum_x = np.sum(x_initial[i, :])
             if sum_x == 1:
-                # Keep λ_i unchanged
+                # Keep labda unchanged
                 continue
             elif sum_x > 1:
-                # Decrease λ_i
-                labda[i] -= delta  # Adjust the step size as needed
+                # Decrease labda
+                labda[i] -= delta
             else:
-                # Increase λ_i
-                labda[i] += delta  # Adjust the step size as needed
+                # Increase labda
+                labda[i] += delta
 
         return labda
 
@@ -247,39 +240,53 @@ class LagrangianHeuristic:
         """
         Method that performs the Lagrangian Heuristic. 
         """
+        #initialize lists for saving variables, delta and bestUB/LB
         lower = []
         upper = []
         bestLow = []
         bestUp = []
         bestUB = float('inf')
         bestLB = -float('inf')
-        delta = 1
+        delta = .5
 
         #Problem initialization
         problem = UFL_Problem.readInstance(inst)
         y = np.zeros(problem.n_facilities,dtype=float)
         x = np.zeros((problem.n_markets, problem.n_facilities),dtype=float)
         solution = UFL_Solution(y, x, problem)
-        labda = np.full((problem.n_markets), 15,dtype=float)
+        labda = np.full((problem.n_markets), 10,dtype=float)
+        print (labda)
 
 
         #iterations
         for i in range(iterations):
+            #initialize again solution matrix with zeros for the next iteration
             solution.y = np.zeros(problem.n_facilities ,dtype=float)
             solution.x = np.zeros((problem.n_markets, problem.n_facilities),dtype=float)
+
+            #Calculate theta (lower bound)
             LB = self.computeTheta(labda, problem, solution)
             lower.append(LB)
-            x_initial = self.computeLagrangianSolution(labda,problem,solution)
-            #feasible = UFL_Solution.isFeasible(solution)
-            #print("This iteration is feasible? ",feasible)
 
-            solution.x,solution.y = self.convertToFeasibleSolution(problem,solution)
+            #Compute the the Lagrange where condition is cij - lambdai < 0
+            solution.x,solution.y = self.computeLagrangianSolution(labda,problem,solution)
+            print(solution.y," y suma",np.sum(solution.x),np.sum(solution.y))
 
 
-            #print("After feasibility, this iteration is feasible? ",UFL_Solution.isFeasible(UFL_Solution))
-            UB = UFL_Solution.getCosts(UFL_Solution, problem, solution.x,solution.y)
+            #Update weights of lambda and delta
+            labda = self.updateMultipliers(labda,problem,solution.x,delta)
+            delta = delta
+
+            #Convert to feasible the solution
+            if solution.isFeasible() == False:
+                solution.x,solution.y = self.convertToFeasibleSolution(problem,solution)
+
+            #Get cost/Upper bound of the constructed feasible solution
+            UB = solution.getCosts(problem, solution.x,solution.y)
             upper.append(UB)
 
+
+            #Check for better UB and LB
             if LB > bestLB:
                 bestLB = LB
 
@@ -290,13 +297,25 @@ class LagrangianHeuristic:
             bestUp.append(bestUB)
 
 
-            print("Iteration cost/UB: ",UB," And theta was/LB: ",LB)
-
-            labda = self.updateMultipliers(labda,problem,x_initial,delta)
+            print("Iteration", i, " cost/UB: ",UB," And theta was/LB: ",LB)
 
 
-        #solution.x, solution.y = x_feasible, y_feasible
-        final_cost = UFL_Solution.getCosts(UFL_Solution, problem, solution.x, solution.y)
+        print("The best Upper bound and Lower bounds found were: ",bestUB, " and ",bestLB)
 
-        print("Final Cost is ",final_cost)
-        print(bestUB,bestLB)
+
+        #Printing graph
+        plt.figure()  # Adjust the figure size as needed
+        plt.plot(upper, label='Upper bound')
+        plt.plot(bestLow, label='Best lower bound')
+        plt.plot(bestUp, label='Best upper bound')
+        plt.legend()  # Show legend if labels are provided
+        plt.title("Lagrange Heuristic")  # Set the title if provided
+        plt.grid(True)  # Add a grid to the plot
+        plt.xlabel("iterations")
+        plt.ylabel("cost")
+        plt.show()
+
+        return solution.x,solution.y,labda
+
+
+
